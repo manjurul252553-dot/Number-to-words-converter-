@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Number Words Denomination</title>
+<link rel="manifest" href="manifest.json">
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+<style>
+  body { font-family: "Noto Sans Bengali", Arial, sans-serif; background: #f1f3f6; margin: 20px; }
+  h2 { text-align: center; background: #000; color: white; padding: 10px; border-radius: 8px; }
+  #headerDateTime { text-align: center; font-weight: bold; margin: 10px 0 20px; }
+  .section { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 0 5px rgba(0,0,0,0.2); }
+  label { font-weight: bold; }
+  input[type="text"], input[type="number"] { width: 100%; padding: 5px; margin: 5px 0; border: 1px solid #ccc; border-radius: 6px; text-align: center; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { border: 1px solid #ddd; text-align: center; padding: 6px; }
+  th { background: #f8f9fa; }
+  .total-row { font-weight: bold; background: #f1f3f5; }
+  .btn { background: #007bff; color: white; border: none; padding: 8px 14px; border-radius: 6px; margin-top: 10px; cursor: pointer; }
+  .btn:hover { background: #0056b3; }
+  .button-row { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+  .clear-btn { background: #dc3545; }
+  .clear-btn:hover { background: #a71d2a; }
+  .footer { text-align: right; margin-top: 10px; font-weight: bold; }
+</style>
+</head>
+<body>
+<div id="pdfArea">
+  <h2>NUMBER - WORDS - DENOMINATION</h2>
+  <p id="headerDateTime">তারিখঃ --/--/---- সময়ঃ --:--</p>
+  <div class="section">
+    <div id="inputSection">
+      <label>নোট লিখুন:</label>
+      <input type="text" id="noteBy" placeholder="যিনি লিখছেন (ঐচ্ছিক)" />
+      <label>সংখ্যা লিখুন:</label>
+      <input type="number" id="numberInput" placeholder="যেমনঃ 1250" oninput="convertNumber()" />
+      <div class="button-row">
+        <button class="btn clear-btn" onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+    <label>English:</label>
+    <input type="text" id="engWords" readonly>
+    <label>বাংলা:</label>
+    <input type="text" id="bnWords" readonly>
+    <table>
+      <thead>
+        <tr><th>Note</th><th>Count</th><th>Total</th></tr>
+      </thead>
+      <tbody id="denoBody">
+        <tr><td>1000</td><td><input type="number" min="0" class="count" data-note="1000"></td><td class="total">0</td></tr>
+        <tr><td>500</td><td><input type="number" min="0" class="count" data-note="500"></td><td class="total">0</td></tr>
+        <tr><td>200</td><td><input type="number" min="0" class="count" data-note="200"></td><td class="total">0</td></tr>
+        <tr><td>100</td><td><input type="number" min="0" class="count" data-note="100"></td><td class="total">0</td></tr>
+        <tr><td>50</td><td><input type="number" min="0" class="count" data-note="50"></td><td class="total">0</td></tr>
+        <tr><td>20</td><td><input type="number" min="0" class="count" data-note="20"></td><td class="total">0</td></tr>
+        <tr><td>10</td><td><input type="number" min="0" class="count" data-note="10"></td><td class="total">0</td></tr>
+        <tr><td>5</td><td><input type="number" min="0" class="count" data-note="5"></td><td class="total">0</td></tr>
+        <tr><td>2</td><td><input type="number" min="0" class="count" data-note="2"></td><td class="total">0</td></tr>
+        <tr><td>1</td><td><input type="number" min="0" class="count" data-note="1"></td><td class="total">0</td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="total-row"><td>Total</td><td id="totalCount">0</td><td id="grandTotal">0</td></tr>
+      </tfoot>
+    </table>
+    <div class="footer" id="noteFooter"></div>
+  </div>
+</div>
+<div class="button-row">
+  <button class="btn" onclick="downloadPDF()">Download PDF</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+window.onload = () => {
+  document.getElementById("headerDateTime").innerText = getFormattedDateTime();
+};
+document.querySelectorAll('.count').forEach(input => input.addEventListener('input', calculateTotals));
+function calculateTotals() {
+  let totalCount = 0, grandTotal = 0;
+  document.querySelectorAll('.count').forEach((input, i) => {
+    const note = parseInt(input.dataset.note);
+    const count = parseInt(input.value) || 0;
+    const total = note * count;
+    document.querySelectorAll('.total')[i].innerText = total;
+    totalCount += count;
+    grandTotal += total;
+  });
+  document.getElementById('totalCount').innerText = totalCount;
+  document.getElementById('grandTotal').innerText = grandTotal;
+  document.getElementById('engWords').value = numberToEnglish(grandTotal);
+  document.getElementById('bnWords').value = numberToBangla(grandTotal);
+  document.getElementById('noteFooter').innerText = "মন্তব্যঃ " + (document.getElementById('noteBy').value || "");
+}
+function getFormattedDateTime() {
+  const now = new Date();
+  const date = now.toLocaleDateString('bn-BD', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const time = now.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit', hour12: true });
+  return `তারিখঃ ${date} সময়ঃ ${time}`;
+}
+function downloadPDF() {
+  calculateTotals();
+  document.getElementById("headerDateTime").innerText = getFormattedDateTime();
+  const inputSection = document.getElementById("inputSection");
+  inputSection.style.display = "none";
+  const element = document.getElementById('pdfArea');
+  const opt = { margin: 0.2, filename: 'Number_Words_Denomination.pdf', image: { type: 'jpeg', quality: 0.9 },
+    html2canvas: { scale: 1.5, useCORS: true, scrollY: 0 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
+  setTimeout(() => { html2pdf().set(opt).from(element).save().then(() => { inputSection.style.display = "block"; }); }, 300);
+}
+function clearAll() {
+  document.querySelectorAll('.count').forEach(i => i.value = '');
+  document.querySelectorAll('.total').forEach(t => t.innerText = '0');
+  document.getElementById('totalCount').innerText = '0';
+  document.getElementById('grandTotal').innerText = '0';
+  document.getElementById('engWords').value = '';
+  document.getElementById('bnWords').value = '';
+  document.getElementById('noteBy').value = '';
+  document.getElementById('numberInput').value = '';
+  document.getElementById('noteFooter').innerText = '';
+}
+function convertNumber() {
+  const num = parseInt(document.getElementById('numberInput').value) || 0;
+  document.getElementById('engWords').value = numberToEnglish(num);
+  document.getElementById('bnWords').value = numberToBangla(num);
+}
+function numberToEnglish(n){ if(n===0)return 'Zero Taka'; const a=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen']; const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety']; function chunk(num){let str='';if(num>=100){str+=a[Math.floor(num/100)]+' Hundred ';num%=100;}if(num>=20){str+=b[Math.floor(num/10)]+' ';if(num%10)str+=a[num%10];}else if(num>0)str+=a[num];return str.trim();} let out='',crore=Math.floor(n/10000000);if(crore){out+=chunk(crore)+' Crore ';n%=10000000;} let lakh=Math.floor(n/100000);if(lakh){out+=chunk(lakh)+' Lakh ';n%=100000;} let thousand=Math.floor(n/1000);if(thousand){out+=chunk(thousand)+' Thousand ';n%=1000;} if(n>0)out+=chunk(n); return out.trim()+' Taka'; }
+function numberToBangla(n){ if(n===0)return 'শূন্য টাকা'; const words={0:'',1:'এক',2:'দুই',3:'তিন',4:'চার',5:'পাঁচ',6:'ছয়',7:'সাত',8:'আট',9:'নয়',10:'দশ',11:'এগারো',12:'বারো',13:'তেরো',14:'চৌদ্দ',15:'পনেরো',16:'ষোল',17:'সতেরো',18:'আঠারো',19:'উনিশ',20:'বিশ',21:'একুশ',22:'বাইশ',23:'তেইশ',24:'চব্বিশ',25:'পঁচিশ',26:'ছাব্বিশ',27:'সাতাশ',28:'আটাশ',29:'ঊনত্রিশ',30:'ত্রিশ',31:'একত্রিশ',32:'বত্রিশ',33:'তেত্রিশ',34:'চৌত্রিশ',35:'পঁয়ত্রিশ',36:'ছত্রিশ',37:'সাঁইত্রিশ',38:'আটত্রিশ',39:'ঊনচল্লিশ',40:'চল্লিশ',41:'একচল্লিশ',42:'বিয়াল্লিশ',43:'তেতাল্লিশ',44:'চুয়াল্লিশ',45:'পঁয়তাল্লিশ',46:'ছেচল্লিশ',47:'সাতচল্লিশ',48:'আটচল্লিশ',49:'ঊনপঞ্চাশ',50:'পঞ্চাশ',51:'একান্ন',52:'বায়ান্ন',53:'ত্রিপান্ন',54:'চুয়ান্ন',55:'পঞ্চান্ন',56:'ছাপ্পান্ন',57:'সাতান্ন',58:'আটান্ন',59:'ঊনষাট',60:'ষাট',61:'একষট্টি',62:'বাষট্টি',63:'তেষট্টি',64:'চৌষট্টি',65:'পঁয়ষট্টি',66:'ছেষট্টি',67:'সাতষট্টি',68:'আটষট্টি',69:'ঊনসত্তর',70:'সত্তর',71:'একাত্তর',72:'বাহাত্তর',73:'তিয়াত্তর',74:'চুয়াত্তর',75:'পঁচাত্তর',76:'ছিয়াত্তর',77:'সাতাত্তর',78:'আটাত্তর',79:'ঊনআশি',80:'আশি',81:'একাশি',82:'বিরাশি',83:'তিরাশি',84:'চুরাশি',85:'পঁচাশি',86:'ছিয়াশি',87:'সাতাশি',88:'আটাশি',89:'ঊননব্বই',90:'নব্বই',91:'একানব্বই',92:'বিরানব্বই',93:'তিরানব্বই',94:'চুরানব্বই',95:'পঁচানব্বই',96:'ছিয়ানব্বই',97:'সাতানব্বই',98:'আটানব্বই',99:'নিরানব্বই'}; function chunk(num){if(num===0)return '';let s='';if(num>=100){s+=words[Math.floor(num/100)]+' শত ';num%=100;}if(num>0){ s+=words[num]; }return s.trim();} let out='',koti=Math.floor(n/10000000);if(koti){out+=chunk(koti)+' কোটি ';n%=10000000;} let lakh=Math.floor(n/100000);if(lakh){out+=chunk(lakh)+' লাখ ';n%=100000;} let hazar=Math.floor(n/1000);if(hazar){out+=chunk(hazar)+' হাজার ';n%=1000;} if(n>0)out+=chunk(n); return out.trim()+' টাকা'; }
+</script>
+</body></html>
